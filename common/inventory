@@ -1,0 +1,31 @@
+# Inventory used to do things like wipe file signatures from partititions
+# and disks (mostly) to reset portions of the infrastructure without having
+# to redeploy the VMs. Simplifies having to change the MAC addresses in
+# /etc/dhcp/dhcpd.conf until I review and modify existing work on automation.
+# https://github.com/sa-ne/openshift4-rhv-upi
+
+[bootstrap]
+bootstrap.cluster1.openhappens.org
+
+[master]
+master1.cluster1.openhappens.org
+master2.cluster1.openhappens.org
+master3.cluster1.openhappens.org
+
+[infra]
+infra1.cluster1.openhappens.org
+infra2.cluster1.openhappens.org
+infra3.cluster1.openhappens.org
+
+[compute]
+compute1.cluster1.openhappens.org
+compute2.cluster1.openhappens.org
+compute3.cluster1.openhappens.org
+
+[worker:children]
+infra
+compute
+
+[all:vars]
+ansible_ssh_user=core
+ansible_become=yes

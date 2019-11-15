@@ -1,0 +1,1 @@
+tftpboot by default looks at /var/lib/tftpboot/ rather than /tftpboot/ but syslinux installs the configs there. Replace that with a bind mount or change the systemd unit file in /var/lib/systemd/system/ (systemctl daemon-reload) and restart the tftp service. Rather flexible here.

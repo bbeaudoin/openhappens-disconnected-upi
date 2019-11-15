@@ -1,0 +1,14 @@
+[root@bastion openhappens]# firewall-cmd --list-all --zone internal
+internal (active)
+  target: default
+  icmp-block-inversion: no
+  interfaces: ens7
+  sources: 
+  services: dhcp dhcpv6-client dns http https ntp tftp
+  ports: 6443/tcp 22623/tcp
+  protocols: 
+  masquerade: no
+  forward-ports: 
+  source-ports: 
+  icmp-blocks: 
+  rich rules: 

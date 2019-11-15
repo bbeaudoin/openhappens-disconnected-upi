@@ -1,0 +1,49 @@
+#!/usr/bin/bash -x
+# Commands to create the configs for deployment
+source ${HOME}/common/variables
+
+BIN_DIR="${HOME}/bin"
+
+# Set the name of the cluster
+CLUSTER_NAME=cluster1.openhappens.org
+INSTALL_CONF=${HOME}/install-config.yaml
+
+# Override any variables from common/variables here (to use another tag that
+# has already been synchronized other than the current one for example)
+#OCP_RELEASE=
+
+# Error out if a command errors (safe)
+set -e true
+
+# The `openshift-install` binary MUST be the one matching the version from
+# the selected OCP_RELEASE. This must already exist in the mirror-registry.
+oc adm -a ${LOCAL_SECRET_JSON} release extract --to=${HOME}/bin --command=openshift-install "${LOCAL_REGISTRY}/${LOCAL_REPOSITORY}:${OCP_RELEASE}"
+
+# Create a temporary directory (do not overwrite last config)
+DIRECTORY="/tmp/${CLUSTER_NAME}.$(date +%Y%m%d%H%M)"
+mkdir ${DIRECTORY}
+
+# Clean and recreate the directory for the cluster
+cp "${INSTALL_CONF}" "${DIRECTORY}"
+${BIN_DIR}/openshift-install create manifests --dir="${DIRECTORY}"
+
+# Note, if any changes need to be made to the manifests the script should
+# not be allowed to get here. At this point the configuration has been set
+# in base64 encoded variables and is more difficult to change.
+${BIN_DIR}/openshift-install create ignition-configs --dir="${DIRECTORY}"
+
+# Since the pxe files are fixed resources and there's no subdirectory
+# only one cluster can be bootstrapped at a time based on the current
+# ignition files. While fine for my use-case, this may not be for others.
+/usr/bin/cp --verbose --force ${DIRECTORY}/*.ign /var/www/html/
+
+# Command to watch for the control plane to be up. This is not necessary
+# for the installation to succeed, it will only inform you when bootstrap
+# is done and the operator has completed the installation.
+${BIN_DIR}/openshift-install --dir="${DIRECTORY}" wait-for bootstrap-complete --log-level=info
+
+# If you hit control-C or the above command just times out after 30 minutes
+# it isn't an issue because the last command does nothing really. Once the
+# bootstrap machine is online it will wait until the desired replica count
+# has been met. Note, if worker replicas is set to 0, bootstrap them first
+# as the bootstrap machine will tear itself down after the counts are met.

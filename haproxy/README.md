@@ -1,0 +1,1 @@
+Here there wasn't much done, just reused an older haproxy config and changed ports. I was lazy with the dhcp http service just redirecting to port 8080, make sure to change the httpd listen port accordingly.

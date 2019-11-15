@@ -1,0 +1,40 @@
+apiVersion: v1
+baseDomain: openhappens.org
+compute:
+- hyperthreading: Enabled   
+  name: worker
+  replicas: 3 
+controlPlane:
+  hyperthreading: Enabled   
+  name: master 
+  replicas: 3 
+metadata:
+  name: cluster1 
+networking:
+  clusterNetwork:
+  - cidr: 10.128.0.0/14 
+    hostPrefix: 23 
+  networkType: OpenShiftSDN
+  serviceNetwork: 
+  - 172.30.0.0/16
+platform:
+  none: {}
+pullSecret: '{"auths": {"bastion.cluster1.openhappens.org:5000": {"auth": "your base64 encoded secret goes here"}}}'
+sshKey: 'ssh-rsa AAAA... your ssh PUBLIC key goes here....'
+
+# Replace with your public CA (the one that signed your certs)
+additionalTrustBundle: | 
+  -----BEGIN CERTIFICATE-----
+  MII... your public CA certificate goes here ...
+  -----END CERTIFICATE-----
+
+# IMPORTANT: Replace the below with the information returned from the command
+# used to populate your registry, even if the other options look reasonable
+# they may differ based on the source of your packages.
+imageContentSources:
+- mirrors:
+  - bastion.cluster1.openhappens.org:5000/ocp4/openshift4
+  source: quay.io/openshift-release-dev/ocp-release
+- mirrors:
+  - bastion.cluster1.openhappens.org:5000/ocp4/openshift4
+  source: quay.io/openshift-release-dev/ocp-v4.0-art-dev

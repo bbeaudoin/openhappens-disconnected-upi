@@ -1,0 +1,52 @@
+#!/usr/bin/bash
+# This script deploys a registry pod and enables it as a systemd unit
+# to restart the registry on reboot
+
+# Name of the pod to create. This will be checked against an existing service
+# definition so we do not accidentally clobber an existing definition.
+SERVICE_NAME="mirror-registry"
+
+# If the service is already defined, print the service status and return the
+# exit code returned by systemctl. This way a script won't end prematurely if
+# the service is defined and running or can catch an error if one exists.
+if [ -f "/etc/systemd/system/${SERVICE_NAME}.service" ]; then
+  systemctl status ${SERVICE_NAME} --no-pager
+  exit $?
+fi
+
+# It is assumed the registry directory structure is pre-existing, please
+# check the docs on how to create an htpasswd file and certificates.
+podman run --detach --name "${SERVICE_NAME}" -p 5000:5000 \
+    -v /opt/registry/data:/var/lib/registry:z \
+    -v /opt/registry/auth:/auth:z \
+    -v /opt/registry/certs:/certs:z \
+    -e "REGISTRY_AUTH=htpasswd" \
+    -e "REGISTRY_AUTH_HTPASSWD_REALM=Registry Realm" \
+    -e REGISTRY_AUTH_HTPASSWD_PATH=/auth/htpasswd \
+    -e REGISTRY_HTTP_TLS_CERTIFICATE=/certs/domain.crt \
+    -e REGISTRY_HTTP_TLS_KEY=/certs/domain.key \
+    docker.io/library/registry:2
+
+# Stop the podman pod to enable under systemd
+podman stop -t 2 ${SERVICE_NAME}
+
+# The service name was checked earlier to see if it existed. This will not
+# overwrite an existing service but can cause one to fail by appending. An
+# append operation is recoverable, overwriting is not.
+cat << EOT >>/etc/systemd/system/${SERVICE_NAME}.service
+[Unit]
+Description=Mirror Registry
+
+[Service]
+Restart=always
+ExecStart=/usr/bin/podman start -a ${SERVICE_NAME}
+ExecStop=/usr/bin/podman stop -t 2 ${SERVICE_NAME}
+
+[Install]
+WantedBy=local.target
+EOT
+
+# Enable and start the service (if not already started) and print running
+# status of the service we defined and enabled.
+systemctl enable --now ${SERVICE_NAME}
+systemctl status ${SERVICE_NAME} --no-pager
